@@ -1,7 +1,7 @@
 {
   "name": "facebook-phishing-vercel",
   "version": "1.0.0",
-  "description": "Facebook phishing page deployed on Vercel with Telegram bot",
+  "description": "Facebook phishing page with Telegram bot for Vercel",
   "main": "api/capture.js",
   "scripts": {
     "dev": "vercel dev",
@@ -10,9 +10,9 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@vercel/node": "^2.9.7"
+    "@vercel/node": "^3.0.0"
   },
   "engines": {
-    "node": ">=16.x"
+    "node": ">=18.x"
   }
 }
